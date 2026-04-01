@@ -24,7 +24,7 @@
 
 | 姓名 | 負責功能     | 檔案        | 使用的 API |
 | ---- | ------------ | ----------- | ---------- |
-| 林伽紜 |  取得一則今日人生建議  | `tools/feature/advice-tool`  |  https://api.adviceslip.com/advice  |
+| 林伽紜 |  取得一則今日人生建議  | `tools/advice-tool`  |  https://api.adviceslip.com/advice  |
 |      |              | `tools/`  |            |
 |      |              | `tools/`  |            |
 |      | Skill 整合   | `skills/` | —         |
