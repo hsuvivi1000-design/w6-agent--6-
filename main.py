@@ -4,21 +4,17 @@
 """
 
 import os
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from tools import TOOL_FUNCTIONS, TOOL_DECLARATIONS
 
 # ── 設定 ──────────────────────────────────────────────
-MODEL_ID = "gemini-2.0-flash"
+MODEL_ID = "gemini-3.1-flash-lite-preview"
 
 SYSTEM_INSTRUCTION = """你是一位貼心的健康生活顧問 Agent。
-你的工作是幫助使用者規劃每日生活，提供健康、正面的建議。
 
-當使用者要求規劃今天時，你應該：
-1. 使用 get_advice 工具取得一則今日人生建議
-2. 根據取回的建議，為使用者產出一份完整的今日生活計畫
-
-回覆時請使用繁體中文，語氣親切友善，並用 emoji 讓回覆更生動。
+當使用者要求建議或規劃時，使用 get_advice 工具取得一則建議，然後用一句簡短的繁體中文回覆即可。保持簡潔，不要長篇大論。
 """
 
 
@@ -38,6 +34,9 @@ def handle_tool_call(tool_name: str, tool_args: dict) -> str:
 
 
 def main():
+    # ── 載入 .env ──────────────────────────────────────
+    load_dotenv()
+
     # ── 初始化 Gemini Client ────────────────────────────
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -100,15 +99,11 @@ def main():
 
                     # 將結果回傳給模型
                     response = chat.send_message(
-                        types.Content(
-                            parts=[
-                                types.Part(
-                                    function_response=types.FunctionResponse(
-                                        name=fc.name,
-                                        response={"result": result_str},
-                                    )
-                                )
-                            ]
+                        types.Part(
+                            function_response=types.FunctionResponse(
+                                name=fc.name,
+                                response={"result": result_str},
+                            )
                         )
                     )
                     break  # 重新檢查新回覆
