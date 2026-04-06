@@ -13,7 +13,7 @@
 
 | 使用者輸入   | Agent 行為                             | 負責組員 |
 | ------------ | -------------------------------------- | -------- |
-| （例：天氣） | 呼叫 weather_tool，查詢即時天氣        |          |
+| （例：天氣） | 呼叫 weather_tool，查詢即時天氣        |  朱覺祥   |
 | （例：景點） | 呼叫 search_tool，搜尋熱門景點         |          |
 | （例：建議） | 呼叫 advice_tool，取得隨機建議         | 林伽紜    |
 | （例：出發） | 執行 trip_briefing Skill，產出行前簡報 |          |
@@ -25,10 +25,10 @@
 | 姓名 | 負責功能     | 檔案        | 使用的 API |
 | ---- | ------------ | ----------- | ---------- |
 | 林伽紜 |  取得一則今日人生建議  | `tools/advice-tool`  |  https://api.adviceslip.com/advice  |
-|      |              | `tools/`  |            |
+| 朱覺祥 | 天氣查詢 Tool        | `tools/weather_tool.py`  | wttr.in                |
 |      |              | `tools/`  |            |
 |      | Skill 整合   | `skills/` | —         |
-|      | Agent 主程式 | `main.py` | —         |
+|      | Agent 主程式 | `main.py` | Gemini API   |
 
 ---
 
