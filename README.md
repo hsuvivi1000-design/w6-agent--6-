@@ -221,6 +221,10 @@ WEATHER_TOOL_DECLARATION = {
 | 風速 > 40 km/h         | 室內活動 |
 | 其他情況               | 室外活動 |
 
+
+<img width="1115" height="399" alt="螢幕擷取畫面 2026-04-03 155413" src="https://github.com/user-attachments/assets/2ca0c001-4806-4950-98b9-6e4e8c859f92" />
+
+
 ### [功能名稱]（負責：姓名）
 
 - **Tool 名稱**：
