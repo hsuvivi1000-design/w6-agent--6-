@@ -165,7 +165,7 @@ def call_gemini(client, chat_history, system_instruction, gemini_tools, max_retr
                 ),
             )
             return response
-        except genai_errors.ClientError as e:
+        except Exception as e:
             error_msg = str(e)
             # 將 429 (資源耗盡) 和 503 (伺服器負載過高) 都加入自動重試機制
             if any(key in error_msg for key in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
@@ -185,20 +185,14 @@ def call_gemini(client, chat_history, system_instruction, gemini_tools, max_retr
                 else:
                     print_step(
                         "❌",
-                        "伺服器持續繁忙或配額已耗盡",
-                        "已重試 {0} 次仍失敗。\n"
-                        "建議：\n"
-                        "  1. 等幾分鐘後再試\n"
-                        "  2. 確認你的 Gemini API 方案配額".format(max_retries),
+                        "伺服器持續繁忙",
+                        "已重試 {0} 次仍失敗。\n建議稍後再試。".format(max_retries),
                         Color.RED,
                     )
                     return None
             else:
-                print_step("❌", "API 呼叫失敗", str(e), Color.RED)
+                print_step("❌", "發生錯誤", error_msg, Color.RED)
                 return None
-        except Exception as e:
-            print_step("❌", "發生未預期的錯誤", str(e), Color.RED)
-            return None
     return None
 
 
