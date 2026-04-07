@@ -149,7 +149,7 @@ def handle_tool_call(function_call) -> str:
 
 
 # ── Gemini API 呼叫（含重試）────────────────────────────────────
-def call_gemini(client, chat_history, system_instruction, gemini_tools, max_retries=3):
+def call_gemini(client, chat_history, system_instruction, gemini_tools, max_retries=5):
     """
     呼叫 Gemini API，遇到 429 限流時自動等待並重試。
     """
@@ -171,7 +171,7 @@ def call_gemini(client, chat_history, system_instruction, gemini_tools, max_retr
             if any(key in error_msg for key in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
                 # 嘗試從錯誤訊息中解析等待秒數
                 wait_match = re.search(r'retry.*?(\d+)', error_msg, re.IGNORECASE)
-                wait_sec = int(wait_match.group(1)) if wait_match else 5  # 找不到等待秒數預設等 5 秒
+                wait_sec = int(wait_match.group(1)) if wait_match else 10  # 找不到等待秒數預設等 10 秒
                 wait_sec = min(wait_sec, 60)  # 最多等 60 秒
 
                 if attempt < max_retries:
