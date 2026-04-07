@@ -1,8 +1,9 @@
 """
-🤖 Gemini AI Agent — 天氣生活顧問
+🌿 Gemini AI Agent — 健康生活顧問
 ===================================
 使用 Gemini API 的 Function Calling 功能，
-搭配 wttr.in 天氣工具，查詢天氣並推薦適合的活動。
+整合天氣查詢、人生建議、笑話、冷知識等多種工具，
+為使用者量身打造今日健康生活計畫。
 """
 
 import os
@@ -14,8 +15,8 @@ from google import genai
 from google.genai import types
 from google.genai import errors as genai_errors
 
-# 從 tools 資料夾匯入天氣工具
-from tools.weather_tool import WEATHER_TOOL_DECLARATION, get_weather
+# 從 tools 套件統一匯入所有工具
+from tools import TOOL_FUNCTIONS, TOOL_DECLARATIONS
 
 load_dotenv()
 
@@ -37,9 +38,9 @@ def print_banner():
     banner = f"""
 {Color.CYAN}{Color.BOLD}
 ╔══════════════════════════════════════════════════════╗
-║          🌤️  天氣生活顧問 AI Agent  🌤️              ║
+║          🌿  健康生活顧問 AI Agent  🌿              ║
 ║                                                      ║
-║   查詢任何城市的天氣，AI 幫你決定今天適合做什麼！    ║
+║   試試看輸入「幫我規劃今天」或任何健康生活問題！    ║
 ║   輸入 'quit' 或 'exit' 離開                         ║
 ╚══════════════════════════════════════════════════════╝
 {Color.RESET}"""
@@ -56,11 +57,6 @@ def print_step(icon: str, title: str, content: str = "", color: str = Color.CYAN
 
 
 # ── 工具分派器 ───────────────────────────────────────────────────
-TOOL_FUNCTIONS = {
-    "get_weather": get_weather,
-}
-
-
 def handle_tool_call(function_call) -> str:
     """
     根據 Gemini 回傳的 function_call 執行對應工具，
@@ -83,6 +79,10 @@ def handle_tool_call(function_call) -> str:
     else:
         result = {"error": f"未知的工具: {name}"}
 
+    # 統一處理回傳格式（有些工具回傳 str，有些回傳 dict）
+    if isinstance(result, str):
+        result = {"status": "success", "result": result}
+
     result_str = json.dumps(result, ensure_ascii=False, indent=2)
 
     # 顯示工具回傳結果
@@ -96,19 +96,74 @@ def handle_tool_call(function_call) -> str:
     return result_str
 
 
+# ── 系統提示（健康生活顧問人設）─────────────────────────────────
+SYSTEM_PROMPT = """你是一個「健康生活顧問 AI Agent」🌿，你的任務是幫助使用者規劃健康、充實的一天。
+
+你擁有以下工具：
+1. **get_weather** — 查詢指定城市的即時天氣（溫度、降雨機率、風速等）
+2. **get_advice** — 取得一則隨機的正能量人生建議
+3. **get_joke** — 取得一則英文笑話（含中文翻譯），每日一笑有益身心
+4. **get_fun_fact** — 取得一則趣味冷知識，讓一天更有趣
+
+## 核心情境：「幫我規劃今天」
+
+當使用者說「幫我規劃今天」或類似的話時，請依序執行以下步驟：
+1. 先詢問使用者所在城市（如果沒提供的話），然後呼叫 get_weather 查詢天氣
+2. 呼叫 get_advice 取得一則今日正能量建議
+3. 呼叫 get_joke 取得一則笑話讓心情愉快
+4. 呼叫 get_fun_fact 取得一則冷知識
+
+然後根據所有資訊，產出一份完整的「今日健康生活計畫」，格式如下：
+
+---
+🌿 **今日健康生活計畫**
+
+☀️ **天氣概況**：（根據天氣資訊摘要）
+
+🏃 **活動建議**：（根據天氣判斷室內/室外，推薦 3-5 個健康活動）
+  - 天氣判斷標準：
+    - 降雨機率 > 60% → 室內活動
+    - 溫度 > 35°C 或 < 5°C → 室內活動
+    - 風速 > 40 km/h → 室內活動
+    - 其他 → 室外活動
+
+💪 **今日正能量**：（引用 get_advice 的建議，翻譯成中文並加以解讀）
+
+😂 **每日一笑**：（引用 get_joke 的笑話）
+
+💡 **今日冷知識**：（引用 get_fun_fact 的冷知識）
+
+📋 **建議作息**：（根據天氣和整體建議，規劃從早到晚的健康作息表）
+---
+
+## 其他互動
+
+- 如果使用者只問天氣 → 使用 get_weather 查詢並分析是否適合戶外活動
+- 如果使用者只想要建議 → 使用 get_advice 給予正能量語錄
+- 如果使用者想放鬆 → 使用 get_joke 或 get_fun_fact
+- 任何健康、生活、運動相關的問題都可以回答
+
+## 回覆風格
+- 使用繁體中文回覆
+- 多用 emoji 讓回覆生動有趣 🎉
+- 語氣親切溫暖，像一個關心你的好朋友
+- 鼓勵使用者養成健康的生活習慣
+"""
+
+
 # ── Gemini API 呼叫（含重試）────────────────────────────────────
-def call_gemini(client, chat_history, system_instruction, weather_tool, max_retries=3):
+def call_gemini(client, chat_history, system_instruction, tools, max_retries=3):
     """
     呼叫 Gemini API，遇到 429 限流時自動等待並重試。
     """
     for attempt in range(1, max_retries + 1):
         try:
             response = client.models.generate_content(
-                model="gemini-3.1-flash-lite-preview",
+                model="gemini-2.5-flash-lite",
                 contents=chat_history,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
-                    tools=[weather_tool],
+                    tools=tools,
                     temperature=0.7,
                 ),
             )
@@ -169,29 +224,15 @@ def run_agent(user_input: str, client, chat_history: list):
     # Step 3: 呼叫 Gemini API
     print_step("🤖", "正在思考中...", "將訊息送給 Gemini API", Color.CYAN)
 
-    # 定義工具
-    weather_tool = types.Tool(function_declarations=[WEATHER_TOOL_DECLARATION])
+    # 定義工具 — 將所有工具的 declarations 一次註冊
+    gemini_tools = [types.Tool(function_declarations=TOOL_DECLARATIONS)]
 
     # 系統提示
     system_instruction = types.Content(
-        parts=[types.Part.from_text(text=(
-            "你是一個天氣生活顧問 AI。當使用者詢問天氣或活動建議時，"
-            "請使用 get_weather 工具查詢天氣資訊。\n\n"
-            "取得天氣資訊後，請根據以下規則給出建議：\n"
-            "1. 根據溫度、降雨機率、風速等判斷適合室內還是室外活動\n"
-            "2. 根據天氣描述決定具體的活動類型\n"
-            "3. 給出 3-5 個具體的活動建議\n"
-            "4. 使用 emoji 讓回覆更生動\n\n"
-            "判斷標準：\n"
-            "- 降雨機率 > 60% → 推薦室內活動\n"
-            "- 溫度 > 35°C 或 < 5°C → 推薦室內活動\n"
-            "- 風速 > 40 km/h → 推薦室內活動\n"
-            "- 其他情況 → 推薦室外活動\n\n"
-            "回覆格式：先總結天氣狀況，再給出室內/室外判定，最後列出活動建議。"
-        ))]
+        parts=[types.Part.from_text(text=SYSTEM_PROMPT)]
     )
 
-    response = call_gemini(client, chat_history, system_instruction, weather_tool)
+    response = call_gemini(client, chat_history, system_instruction, gemini_tools)
     if response is None:
         return None
 
@@ -221,7 +262,7 @@ def run_agent(user_input: str, client, chat_history: list):
                 ))
 
                 # 再次呼叫 Gemini，讓它根據工具結果生成回覆
-                response = call_gemini(client, chat_history, system_instruction, weather_tool)
+                response = call_gemini(client, chat_history, system_instruction, gemini_tools)
                 if response is None:
                     return None
                 break  # 重新檢查新的 response
@@ -271,7 +312,7 @@ def main():
                 continue
 
             if user_input.lower() in ("quit", "exit", "bye", "結束"):
-                print(f"\n{Color.CYAN}👋 感謝使用，再見！{Color.RESET}\n")
+                print(f"\n{Color.CYAN}👋 感謝使用，祝你今天過得健康又快樂！{Color.RESET}\n")
                 break
 
             run_agent(user_input, client, chat_history)
@@ -281,7 +322,7 @@ def main():
             print(f"{Color.YELLOW}  提示: 可以繼續輸入其他問題，或等一下再試。{Color.RESET}\n")
 
         except KeyboardInterrupt:
-            print(f"\n\n{Color.CYAN}👋 感謝使用，再見！{Color.RESET}\n")
+            print(f"\n\n{Color.CYAN}👋 感謝使用，祝你今天過得健康又快樂！{Color.RESET}\n")
             break
 
 
