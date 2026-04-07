@@ -167,29 +167,29 @@ def call_gemini(client, chat_history, system_instruction, gemini_tools, max_retr
             return response
         except genai_errors.ClientError as e:
             error_msg = str(e)
-            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+            # 將 429 (資源耗盡) 和 503 (伺服器負載過高) 都加入自動重試機制
+            if any(key in error_msg for key in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
                 # 嘗試從錯誤訊息中解析等待秒數
                 wait_match = re.search(r'retry.*?(\d+)', error_msg, re.IGNORECASE)
-                wait_sec = int(wait_match.group(1)) if wait_match else 30
+                wait_sec = int(wait_match.group(1)) if wait_match else 5  # 找不到等待秒數預設等 5 秒
                 wait_sec = min(wait_sec, 60)  # 最多等 60 秒
 
                 if attempt < max_retries:
                     print_step(
                         "⏳",
-                        f"API 配額限制 (第 {attempt}/{max_retries} 次重試)",
-                        f"等待 {wait_sec} 秒後自動重試...",
+                        f"伺服器繁忙或配額限制 (第 {attempt}/{max_retries} 次重試)",
+                        f"等待 {wait_sec} 秒後自動重試...\n錯誤詳情: {error_msg}",
                         Color.YELLOW,
                     )
                     time.sleep(wait_sec)
                 else:
                     print_step(
                         "❌",
-                        "API 配額已耗盡",
+                        "伺服器持續繁忙或配額已耗盡",
                         "已重試 {0} 次仍失敗。\n"
                         "建議：\n"
                         "  1. 等幾分鐘後再試\n"
-                        "  2. 到 https://aistudio.google.com/apikey 換一組新的 API Key\n"
-                        "  3. 確認你的 Gemini API 方案配額".format(max_retries),
+                        "  2. 確認你的 Gemini API 方案配額".format(max_retries),
                         Color.RED,
                     )
                     return None
