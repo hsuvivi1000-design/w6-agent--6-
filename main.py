@@ -156,7 +156,7 @@ def call_gemini(client, chat_history, system_instruction, gemini_tools, max_retr
     for attempt in range(1, max_retries + 1):
         try:
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-1.5-flash",
                 contents=chat_history,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
