@@ -3,7 +3,7 @@
 # AI agent 開發分組實作
 
 > 課程：AI agent 開發 — Tool 與 Skill
-> 主題： 旅遊前哨站 /  偵探事務所 /  生活顧問
+> 主題：生活顧問
 
 ---
 
@@ -16,7 +16,7 @@
 | 使用者輸入   | Agent 行為                             | 負責組員 |
 | ------------ | -------------------------------------- | -------- |
 | （例：天氣） | 呼叫 weather_tool，查詢即時天氣        |  朱覺祥  |
-| （例：景點） | 呼叫 search_tool，搜尋熱門景點         |          |
+| （例：笑話） | 呼叫 joke_tool，取得隨機英文笑話(附中文翻譯)  |  林湘紜  |
 | （例：建議） | 呼叫 advice_tool，取得隨機建議         | 林伽紜    |
 | （例：出發） | 執行 trip_briefing Skill，產出行前簡報 |          |
 
@@ -28,7 +28,7 @@
 | ------ | -------------------- | ------------------------ | ---------------------- |
 | 林伽紜 | 取得一則今日人生建議        | `tools/advice_tool.py`  | https://api.adviceslip.com/advice                |
 | 朱覺祥 | 天氣查詢 Tool        | `tools/weather_tool.py`  | wttr.in                 |
-|        |                      | `tools/`                 |                        |
+| 林湘紜 |  取得每日一笑話      | `tools/joke_tool.py`  |  icanhazdadjoke    |
 |        | Skill 整合           | `skills/`                | —                      |
 |        | Agent 主程式         | `main.py`                | Gemini API             |
 
@@ -40,7 +40,7 @@
 ├── tools/
 │   ├── advice_tool.py   
 │   ├── xxx_tool.py   
-│   └── xxx_tool.py  
+│   └── joke_tool.py  
 │   ├── __init__.py          # tools 套件初始化
 │   └── weather_tool.py      # 天氣查詢工具（wttr.in）
 ├── skills/
@@ -221,12 +221,12 @@ WEATHER_TOOL_DECLARATION = {
 | 風速 > 40 km/h         | 室內活動 |
 | 其他情況               | 室外活動 |
 
-### [功能名稱]（負責：姓名）
+### [每日笑話]（負責：林湘紜）
 
-- **Tool 名稱**：
-- **使用 API**：
-- **輸入**：
-- **輸出範例**：
+- **Tool 名稱**：joke_tool
+- **使用 API**：icanhazdadjoke
+- **輸入**：給我一個笑話
+- **輸出範例**：🤖 顧問：為什麼雞蛋不會講笑話？ 他們會互相攻擊(They'd crack each other up)
 
 ### [功能名稱]（負責：姓名）
 
@@ -255,12 +255,12 @@ Step 3: 組合輸出 → 產生 ___
 
 最大的困難是 Gemini chat.send_message() 回傳 function response 時格式要求與文件不同，需改用 types.Part 直接傳遞而非包在 types.Content 裡，花了一些時間除錯才解決。
 
-> 忘記改gemini調用的版本，一直和我說我額度沒了，差點害我嚇死
+忘記改gemini調用的版本，一直和我說我額度沒了，差點害我嚇死
 
 ### Tool 和 Skill 的差別
 
-> Tool是一個單一功能的函式，skill是多個 Tool 組合起來的工作流程
+Tool是一個單一功能的函式，skill是多個 Tool 組合起來的工作流程
 
 ### 如果再加一個功能
 
-> 可能再加入地圖和規劃路線吧，剛好配合天氣！
+可能再加入地圖和規劃路線吧，剛好配合天氣！
